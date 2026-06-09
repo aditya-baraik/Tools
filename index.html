@@ -961,8 +961,9 @@ fileStores['imgpdf'] = [];
 
 // ══════════════════════════════════════
 // AADHAAR RESIZER
-// Full Aadhaar PDF/image → crop BOTTOM portion (actual card with photo + QR)
-// Output: 85.6×54mm @ 600 DPI = 2026×1276px
+// Portrait A4 page has N cards stacked vertically (each card = landscape strip)
+// Auto-detect N by scanning horizontal whitespace dividers
+// Each strip → 2026×1276px (85.6×54mm @ 600 DPI)
 // ══════════════════════════════════════
 
 async function fileToImageBitmap(file) {
@@ -972,8 +973,7 @@ async function fileToImageBitmap(file) {
     const bitmaps = [];
     for(let p=1; p<=pdf.numPages; p++) {
       const page = await pdf.getPage(p);
-      // Scale 4x for high res — ensures clean 600 DPI output
-      const viewport = page.getViewport({scale: 4});
+      const viewport = page.getViewport({scale: 4}); // 4x = ~600 DPI quality
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width; canvas.height = viewport.height;
       await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
@@ -991,6 +991,62 @@ async function fileToImageBitmap(file) {
   }
 }
 
+// Scan canvas rows — find horizontal whitespace gaps between cards
+// Returns array of {sy, sh} strips
+function detectCardStrips(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const data = ctx.getImageData(0, 0, w, h).data;
+
+  // For each row, check if it is "content" (has colored pixels) or "gap" (mostly white)
+  const step = Math.max(1, Math.floor(w / 80));
+  const rowHasContent = new Uint8Array(h);
+  for(let y = 0; y < h; y++) {
+    let colored = 0;
+    for(let x = Math.floor(w*0.05); x < Math.floor(w*0.95); x += step) {
+      const i = (y * w + x) * 4;
+      if(data[i] < 230 || data[i+1] < 230 || data[i+2] < 230) colored++;
+    }
+    rowHasContent[y] = colored > 2 ? 1 : 0;
+  }
+
+  // Find content bands (runs of content rows)
+  const bands = [];
+  let inBand = false, bandStart = 0;
+  for(let y = 0; y < h; y++) {
+    if(!inBand && rowHasContent[y]) { inBand = true; bandStart = y; }
+    else if(inBand && !rowHasContent[y]) {
+      // Check gap is at least 0.5% of height (real gap, not noise)
+      let gapLen = 0;
+      for(let yy = y; yy < Math.min(h, y + Math.floor(h*0.02)); yy++) {
+        if(!rowHasContent[yy]) gapLen++; else break;
+      }
+      if(gapLen > 3) {
+        bands.push({ sy: bandStart, sh: y - bandStart });
+        inBand = false;
+      }
+    }
+  }
+  if(inBand) bands.push({ sy: bandStart, sh: h - bandStart });
+
+  // Filter out tiny bands (noise/borders) — keep only bands > 8% of page height
+  const minH = h * 0.08;
+  const cardBands = bands.filter(b => b.sh >= minH);
+
+  // Fallback: if detection fails, divide page equally
+  if(cardBands.length === 0) {
+    // Guess: A4 portrait with cards — card aspect = 85.6/54 ≈ 1.585 (landscape)
+    // Page aspect = w/h. Each card takes full width, height = w/1.585
+    const cardH = Math.floor(w / (85.6 / 54));
+    const n = Math.max(1, Math.round(h / cardH));
+    const strips = [];
+    for(let i=0; i<n; i++) strips.push({ sy: Math.floor(i*h/n), sh: Math.floor(h/n) });
+    return strips;
+  }
+
+  return cardBands;
+}
+
 async function processAadhaar() {
   const files = fileStores['aadhaar'];
   if(!files.length) return;
@@ -998,75 +1054,71 @@ async function processAadhaar() {
   const btn = document.getElementById('aadhaar-process-btn');
   btn.disabled = true;
   setProgress('aadhaar', 0);
-  setStatus('aadhaar','Processing Aadhaar files…');
+  setStatus('aadhaar', 'Processing Aadhaar files…');
 
-  // PVC card output size
   const OUT_W_MM = 85.6;
   const OUT_H_MM = 54;
-  const OUT_W_PX = 2026;  // 85.6mm @ 600 DPI
-  const OUT_H_PX = 1276;  // 54mm @ 600 DPI
+  const OUT_W_PX = 2026; // 85.6mm @ 600 DPI
+  const OUT_H_PX = 1276; // 54mm @ 600 DPI
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:[OUT_W_MM, OUT_H_MM] });
   let isFirst = true;
   let processed = 0;
+  let totalCards = 0;
 
   for(const file of files) {
     try {
       const canvases = await fileToImageBitmap(file);
+
       for(const src of canvases) {
         const srcW = src.naturalWidth || src.width;
         const srcH = src.naturalHeight || src.height;
 
-        // Draw source onto working canvas
+        // Draw to working canvas
         const fullCanvas = document.createElement('canvas');
         fullCanvas.width = srcW; fullCanvas.height = srcH;
         fullCanvas.getContext('2d').drawImage(src, 0, 0);
 
-        let sx, sy, sw, sh;
-
+        let strips;
         if(srcH > srcW) {
-          // ── Portrait A4 full Aadhaar ──
-          // Card strip sits in BOTTOM ~42% of the page
-          // Top of page has info text / instructions — we skip that
-          sy = Math.floor(srcH * 0.52);   // start from 52% down
-          sh = Math.floor(srcH * 0.42);   // take 42% height
-          sx = 0;
-          sw = srcW;
-
-          // Clamp to image bounds
-          if(sy + sh > srcH) sh = srcH - sy;
+          // Portrait A4 — detect strips
+          strips = detectCardStrips(fullCanvas);
         } else {
-          // Already landscape / already a card image → use full
-          sx=0; sy=0; sw=srcW; sh=srcH;
+          // Already landscape card — use full image as one strip
+          strips = [{ sy: 0, sh: srcH }];
         }
 
-        // Render cropped area to output canvas at exact PVC dimensions
-        const outCanvas = document.createElement('canvas');
-        outCanvas.width = OUT_W_PX;
-        outCanvas.height = OUT_H_PX;
-        const ctx = outCanvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, OUT_W_PX, OUT_H_PX);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, OUT_W_PX, OUT_H_PX);
+        for(const strip of strips) {
+          const outCanvas = document.createElement('canvas');
+          outCanvas.width = OUT_W_PX;
+          outCanvas.height = OUT_H_PX;
+          const ctx = outCanvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, OUT_W_PX, OUT_H_PX);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          // Crop: full width, strip height
+          ctx.drawImage(fullCanvas, 0, strip.sy, srcW, strip.sh, 0, 0, OUT_W_PX, OUT_H_PX);
 
-        const imgData = outCanvas.toDataURL('image/jpeg', 1.0);
-        if(!isFirst) doc.addPage([OUT_W_MM, OUT_H_MM], 'landscape');
-        doc.addImage(imgData, 'JPEG', 0, 0, OUT_W_MM, OUT_H_MM, undefined, 'NONE');
-        isFirst = false;
+          const imgData = outCanvas.toDataURL('image/jpeg', 1.0);
+          if(!isFirst) doc.addPage([OUT_W_MM, OUT_H_MM], 'landscape');
+          doc.addImage(imgData, 'JPEG', 0, 0, OUT_W_MM, OUT_H_MM, undefined, 'NONE');
+          isFirst = false;
+          totalCards++;
+        }
       }
     } catch(e) { console.error('Aadhaar error:', e); }
+
     processed++;
-    setProgress('aadhaar', Math.round(processed/files.length*100));
-    setStatus('aadhaar', `Processed ${processed} of ${files.length}…`);
+    setProgress('aadhaar', Math.round(processed / files.length * 100));
+    setStatus('aadhaar', `Processed ${processed} of ${files.length} files…`);
   }
 
   const blob = doc.output('blob');
   triggerDownload(blob, 'aadhaar_pvc_cards.pdf');
-  setStatus('aadhaar','✅ Done! Downloading…','success');
-  showResult('aadhaar', `${processed} Aadhaar(s) cropped to PVC size (85.6×54mm @ 600 DPI) and merged into one PDF.`);
+  setStatus('aadhaar', '✅ Done! Downloading…', 'success');
+  showResult('aadhaar', `${totalCards} card(s) from ${processed} file(s) → PVC size (85.6×54mm @ 600 DPI) merged PDF.`);
   btn.disabled = false;
 }
 
