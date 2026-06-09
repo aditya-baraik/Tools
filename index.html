@@ -159,7 +159,7 @@
   .modal-overlay.open { display: flex; }
   .modal {
     background: var(--card); border-radius: 24px;
-    width: 100%; max-width: 740px;
+    width: 100%; max-width: 860px;
     box-shadow: var(--shadow-lg);
     animation: slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1);
   }
@@ -329,12 +329,219 @@
     text-transform: uppercase; color: var(--ink-muted);
   }
 
+  /* ══════════════════════════════════════
+     AADHAAR CROPPER — NEW UI
+  ══════════════════════════════════════ */
+
+  /* Step indicators */
+  .crop-steps {
+    display: flex; gap: 0; margin-bottom: 24px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .crop-step {
+    flex: 1; padding: 10px 14px; text-align: center;
+    font-size: 0.78rem; font-weight: 600; color: var(--ink-muted);
+    background: var(--surface); border-right: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .crop-step:last-child { border-right: none; }
+  .crop-step.active { background: var(--accent-light); color: var(--accent); }
+  .crop-step.done { background: #f0fdf4; color: var(--success); }
+
+  /* Cropper workspace */
+  .cropper-workspace {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .cropper-workspace.visible { display: flex; }
+
+  .cropper-top {
+    display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;
+  }
+
+  /* Canvas container */
+  .cropper-canvas-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 280px;
+    background: #1a1a2e;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    cursor: crosshair;
+    user-select: none;
+    touch-action: none;
+  }
+  .cropper-canvas-wrap canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* Crop overlay box */
+  .crop-box {
+    position: absolute;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+    cursor: move;
+    box-sizing: border-box;
+  }
+  .crop-box::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 32px, rgba(255,255,255,0.07) 32px, rgba(255,255,255,0.07) 33px
+    ),
+    repeating-linear-gradient(
+      90deg, transparent, transparent 32px, rgba(255,255,255,0.07) 32px, rgba(255,255,255,0.07) 33px
+    );
+    pointer-events: none;
+  }
+  /* Corner handles */
+  .crop-handle {
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 3px;
+  }
+  .crop-handle.nw { top: -7px; left: -7px; cursor: nw-resize; }
+  .crop-handle.ne { top: -7px; right: -7px; cursor: ne-resize; }
+  .crop-handle.sw { bottom: -7px; left: -7px; cursor: sw-resize; }
+  .crop-handle.se { bottom: -7px; right: -7px; cursor: se-resize; }
+  /* Edge handles */
+  .crop-handle.n  { top: -5px; left: 50%; transform: translateX(-50%); width: 24px; height: 10px; cursor: n-resize; border-radius: 3px; }
+  .crop-handle.s  { bottom: -5px; left: 50%; transform: translateX(-50%); width: 24px; height: 10px; cursor: s-resize; border-radius: 3px; }
+  .crop-handle.w  { left: -5px; top: 50%; transform: translateY(-50%); width: 10px; height: 24px; cursor: w-resize; border-radius: 3px; }
+  .crop-handle.e  { right: -5px; top: 50%; transform: translateY(-50%); width: 10px; height: 24px; cursor: e-resize; border-radius: 3px; }
+
+  /* Crop box info label */
+  .crop-label {
+    position: absolute;
+    bottom: -26px; left: 0;
+    font-size: 0.7rem; font-weight: 600;
+    color: rgba(255,255,255,0.8);
+    white-space: nowrap; pointer-events: none;
+  }
+
+  /* Right panel controls */
+  .cropper-controls-panel {
+    width: 200px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ctrl-label {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--ink-muted); margin-bottom: 4px;
+  }
+  .zoom-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .zoom-row input[type=range] {
+    flex: 1; accent-color: var(--accent);
+  }
+  .zoom-val {
+    font-size: 0.78rem; font-weight: 700; color: var(--ink); min-width: 38px; text-align: right;
+  }
+  .ctrl-mini-btn {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 12px;
+    font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    width: 100%; text-align: left; transition: all 0.15s; color: var(--ink);
+  }
+  .ctrl-mini-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+  /* Crop position coords */
+  .crop-coords {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    line-height: 1.8;
+  }
+  .crop-coords span { color: var(--ink); font-weight: 600; }
+
+  /* Thumbnail strip */
+  .thumb-strip-wrap {
+    margin-top: 4px;
+  }
+  .thumb-strip-label {
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--ink-muted); margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .thumb-strip {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .thumb-strip::-webkit-scrollbar { height: 4px; }
+  .thumb-strip::-webkit-scrollbar-track { background: transparent; }
+  .thumb-strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .thumb-item {
+    flex-shrink: 0;
+    width: 80px;
+    display: flex; flex-direction: column; gap: 4px;
+    align-items: center;
+  }
+  .thumb-canvas-wrap {
+    width: 80px; height: 52px;
+    border-radius: 6px; overflow: hidden;
+    background: #1a1a2e;
+    position: relative;
+    border: 2px solid var(--border);
+    transition: border-color 0.15s;
+  }
+  .thumb-canvas-wrap canvas {
+    width: 100%; height: 100%; object-fit: cover;
+    display: block;
+  }
+  .thumb-canvas-wrap .thumb-overlay {
+    position: absolute; inset: 0;
+    background: rgba(91,94,244,0.15);
+    border: 2px solid var(--accent);
+    display: none;
+  }
+  .thumb-canvas-wrap.processing .thumb-overlay { display: block; }
+  .thumb-canvas-wrap.done-thumb { border-color: var(--success); }
+  .thumb-name {
+    font-size: 0.65rem; color: var(--ink-muted);
+    text-align: center; max-width: 80px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* Preview of crop result */
+  .crop-preview-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+  }
+  .crop-preview-box .cpb-label {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px;
+  }
+  .crop-preview-box canvas {
+    max-width: 100%; border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
   @media (max-width: 640px) {
     nav { padding: 0 16px; }
     .hero { padding: 48px 20px 40px; }
     .tool-grid { padding: 0 16px; }
     .modal-body { padding: 20px; }
     .modal-header { padding: 18px 20px; }
+    .cropper-controls-panel { width: 100%; }
   }
 </style>
 </head>
@@ -369,7 +576,7 @@
     <div class="tool-badge">Popular</div>
     <div class="tool-icon">🪪</div>
     <h3>Aadhaar Resizer</h3>
-    <p>Crop full-size Aadhaar PDF to PVC card size. Batch up to 30 files. Merged into one PDF.</p>
+    <p>Manually crop Aadhaar to PVC card size (85.6×54mm). Batch up to 30 files, merged into one PDF.</p>
   </div>
 
   <div class="tool-card" onclick="openTool('imgResize')">
@@ -411,7 +618,7 @@
 </div>
 
 <!-- ════════════════════════════════════════
-     MODAL: AADHAAR RESIZER
+     MODAL: AADHAAR RESIZER (NEW CROPPER)
 ════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-aadhaar">
 <div class="modal">
@@ -420,33 +627,123 @@
       <div class="modal-header-icon">🪪</div>
       <div>
         <h2>Aadhaar Resizer</h2>
-        <p>Upload full-size Aadhaar (image or PDF) → PVC card size output</p>
+        <p>Manual crop to PVC card size (85.6×54mm @ 600 DPI) → merged PDF</p>
       </div>
     </div>
     <button class="close-btn" onclick="closeTool('aadhaar')">✕</button>
   </div>
   <div class="modal-body">
-    <div class="dropzone" id="aadhaar-drop" onclick="document.getElementById('aadhaar-input').click()">
-      <input type="file" id="aadhaar-input" accept="image/*,.pdf" multiple />
-      <div class="dropzone-icon">📂</div>
-      <h4>Drop Aadhaar files here</h4>
-      <p>JPG, PNG, PDF — up to 30 files · 25 MB each</p>
+
+    <!-- Step indicators -->
+    <div class="crop-steps">
+      <div class="crop-step active" id="cstep-1">① Upload Files</div>
+      <div class="crop-step" id="cstep-2">② Position Crop</div>
+      <div class="crop-step" id="cstep-3">③ Export PDF</div>
     </div>
-    <div class="file-list" id="aadhaar-list"></div>
-    <div class="action-row">
-      <button class="btn btn-primary" id="aadhaar-process-btn" onclick="processAadhaar()" disabled>
-        ✂️ Crop & Merge PDF
-      </button>
-      <button class="btn btn-secondary" onclick="clearFiles('aadhaar')">Clear</button>
+
+    <!-- STEP 1: Upload -->
+    <div id="aadhaar-upload-section">
+      <div class="dropzone" id="aadhaar-drop" onclick="document.getElementById('aadhaar-input').click()">
+        <input type="file" id="aadhaar-input" accept="image/*,.pdf" multiple />
+        <div class="dropzone-icon">📂</div>
+        <h4>Drop Aadhaar files here</h4>
+        <p>JPG, PNG, PDF — up to 30 files · 25 MB each</p>
+      </div>
+      <div class="file-list" id="aadhaar-list"></div>
+      <div class="action-row">
+        <button class="btn btn-primary" id="aadhaar-next-btn" onclick="aadhaarGoToCrop()" disabled>
+          Next: Position Crop →
+        </button>
+        <button class="btn btn-secondary" onclick="clearFiles('aadhaar')">Clear</button>
+      </div>
     </div>
-    <div class="progress-bar" id="aadhaar-progress-bar" style="display:none">
-      <div class="progress-fill" id="aadhaar-progress"></div>
+
+    <!-- STEP 2: Cropper -->
+    <div class="cropper-workspace" id="aadhaar-crop-section">
+      <div class="cropper-top">
+        <!-- Main canvas -->
+        <div class="cropper-canvas-wrap" id="cropper-canvas-wrap">
+          <canvas id="cropper-bg-canvas"></canvas>
+          <div class="crop-box" id="crop-box">
+            <div class="crop-handle nw" data-dir="nw"></div>
+            <div class="crop-handle ne" data-dir="ne"></div>
+            <div class="crop-handle sw" data-dir="sw"></div>
+            <div class="crop-handle se" data-dir="se"></div>
+            <div class="crop-handle n"  data-dir="n"></div>
+            <div class="crop-handle s"  data-dir="s"></div>
+            <div class="crop-handle w"  data-dir="w"></div>
+            <div class="crop-handle e"  data-dir="e"></div>
+            <div class="crop-label" id="crop-label">85.6 × 54 mm</div>
+          </div>
+        </div>
+
+        <!-- Controls panel -->
+        <div class="cropper-controls-panel">
+          <div>
+            <div class="ctrl-label">Zoom</div>
+            <div class="zoom-row">
+              <input type="range" id="zoom-slider" min="0.3" max="4" step="0.05" value="1" oninput="onZoomSlider()" />
+              <span class="zoom-val" id="zoom-val-label">100%</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="ctrl-label">Position</div>
+            <div class="crop-coords" id="crop-coords">
+              X: <span id="cc-x">—</span><br>
+              Y: <span id="cc-y">—</span><br>
+              W: <span id="cc-w">—</span><br>
+              H: <span id="cc-h">—</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="ctrl-label">Quick fit</div>
+            <button class="ctrl-mini-btn" onclick="cropFitWidth()">⬛ Fit to width</button>
+            <button class="ctrl-mini-btn" style="margin-top:6px" onclick="cropCenter()">⊞ Center crop</button>
+            <button class="ctrl-mini-btn" style="margin-top:6px" onclick="cropFitFull()">⤢ Fit full image</button>
+          </div>
+
+          <div>
+            <div class="ctrl-label">Crop Preview</div>
+            <div class="crop-preview-box">
+              <div class="cpb-label">Result (85.6×54mm)</div>
+              <canvas id="crop-preview-canvas" width="160" height="100" style="width:100%"></canvas>
+            </div>
+          </div>
+
+          <button class="btn btn-secondary" onclick="aadhaarBackToUpload()" style="width:100%;justify-content:center">
+            ← Back
+          </button>
+        </div>
+      </div>
+
+      <!-- Thumbnail strip -->
+      <div class="thumb-strip-wrap">
+        <div class="thumb-strip-label">
+          <span>All files — same crop applied to each</span>
+          <span id="thumb-count-label" style="font-weight:400"></span>
+        </div>
+        <div class="thumb-strip" id="aadhaar-thumb-strip"></div>
+      </div>
+
+      <!-- Export row -->
+      <div class="action-row">
+        <button class="btn btn-primary" id="aadhaar-process-btn" onclick="processAadhaar()">
+          ✂️ Crop All &amp; Export PDF
+        </button>
+        <button class="btn btn-secondary" onclick="aadhaarBackToUpload()">← Back</button>
+      </div>
+      <div class="progress-bar" id="aadhaar-progress-bar" style="display:none">
+        <div class="progress-fill" id="aadhaar-progress"></div>
+      </div>
+      <div class="status-msg" id="aadhaar-status"></div>
+      <div class="result-box" id="aadhaar-result">
+        <h4>✅ Done!</h4>
+        <p id="aadhaar-result-msg"></p>
+      </div>
     </div>
-    <div class="status-msg" id="aadhaar-status"></div>
-    <div class="result-box" id="aadhaar-result">
-      <h4>✅ Done!</h4>
-      <p id="aadhaar-result-msg"></p>
-    </div>
+
   </div>
 </div>
 </div>
@@ -624,8 +921,6 @@
       <button class="tab-btn active" id="tab-img2pdf" onclick="switchTab('img2pdf')">🖼️ Images → PDF</button>
       <button class="tab-btn" id="tab-pdf2img" onclick="switchTab('pdf2img')">📄 PDF → Images</button>
     </div>
-
-    <!-- Images to PDF -->
     <div id="panel-img2pdf">
       <div class="dropzone" onclick="document.getElementById('img2pdf-input').click()">
         <input type="file" id="img2pdf-input" accept="image/*" multiple />
@@ -660,8 +955,6 @@
       <div class="status-msg" id="img2pdf-status"></div>
       <div class="result-box" id="img2pdf-result"><h4>✅ Done!</h4><p id="img2pdf-result-msg"></p></div>
     </div>
-
-    <!-- PDF to Images -->
     <div id="panel-pdf2img" style="display:none">
       <div class="dropzone" onclick="document.getElementById('pdf2img-input').click()">
         <input type="file" id="pdf2img-input" accept=".pdf" />
@@ -821,7 +1114,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 function openTool(id) {
   document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
   document.getElementById('modal-'+id).classList.add('open');
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 }
 function closeTool(id) {
   document.getElementById('modal-'+id).classList.remove('open');
@@ -841,18 +1133,10 @@ const fileStores = {};
 function initFileInput(toolId, inputId, listId, btnId, maxFiles=30) {
   fileStores[toolId] = [];
   const input = document.getElementById(inputId);
-  const drop = document.getElementById(toolId === 'aadhaar' ? 'aadhaar-drop'
-    : toolId === 'imgResize' ? 'resize-drop'
-    : toolId === 'imgCompress' ? 'imgcompress-drop'
-    : toolId === 'fileCompress' ? 'filecompress-drop'
-    : toolId === 'signature' ? null : null);
-
   input.addEventListener('change', () => addFiles(toolId, Array.from(input.files), listId, btnId, maxFiles));
-
-  // drag & drop on modal body
   const overlay = document.getElementById('modal-'+toolId);
   if(overlay) {
-    overlay.addEventListener('dragover', e => { e.preventDefault(); });
+    overlay.addEventListener('dragover', e => e.preventDefault());
     overlay.addEventListener('drop', e => {
       e.preventDefault();
       addFiles(toolId, Array.from(e.dataTransfer.files), listId, btnId, maxFiles);
@@ -862,9 +1146,7 @@ function initFileInput(toolId, inputId, listId, btnId, maxFiles=30) {
 
 function addFiles(toolId, newFiles, listId, btnId, maxFiles) {
   const store = fileStores[toolId];
-  newFiles.forEach(f => {
-    if(store.length < maxFiles && f.size <= 25*1024*1024) store.push(f);
-  });
+  newFiles.forEach(f => { if(store.length < maxFiles && f.size <= 25*1024*1024) store.push(f); });
   renderFileList(toolId, listId, btnId);
 }
 
@@ -893,7 +1175,7 @@ function removeFile(toolId, listId, btnId, idx) {
 function clearFiles(toolId) {
   fileStores[toolId] = [];
   const maps = {
-    aadhaar: ['aadhaar-list','aadhaar-process-btn'],
+    aadhaar: ['aadhaar-list','aadhaar-next-btn'],
     imgResize: ['resize-list','resize-btn'],
     imgCompress: ['imgcompress-list','imgcompress-btn'],
     fileCompress: ['filecompress-list','filecompress-btn'],
@@ -904,6 +1186,11 @@ function clearFiles(toolId) {
     document.getElementById(maps[toolId][0]).innerHTML = '';
     if(maps[toolId][1]) document.getElementById(maps[toolId][1]).disabled = true;
   }
+  // Also reset aadhaar cropper state
+  if(toolId === 'aadhaar') {
+    aadhaarBackToUpload();
+    aadhaarSourceCanvases = [];
+  }
 }
 
 function getFileIcon(name) {
@@ -913,7 +1200,6 @@ function getFileIcon(name) {
   if(['doc','docx'].includes(ext)) return '📝';
   if(['xls','xlsx'].includes(ext)) return '📊';
   if(['ppt','pptx'].includes(ext)) return '📋';
-  if(['zip','rar','7z'].includes(ext)) return '📦';
   return '📁';
 }
 function formatSize(bytes) {
@@ -942,8 +1228,7 @@ function triggerDownload(blob, filename) {
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
 }
 
-// Init file inputs
-initFileInput('aadhaar','aadhaar-input','aadhaar-list','aadhaar-process-btn',30);
+initFileInput('aadhaar','aadhaar-input','aadhaar-list','aadhaar-next-btn',30);
 initFileInput('imgResize','resize-input','resize-list','resize-btn',50);
 initFileInput('imgCompress','imgcompress-input','imgcompress-list','imgcompress-btn',50);
 initFileInput('fileCompress','filecompress-input','filecompress-list','filecompress-btn',100);
@@ -959,168 +1244,535 @@ document.getElementById('pdf2img-input').addEventListener('change', function() {
 fileStores['pdf2img'] = [];
 fileStores['imgpdf'] = [];
 
+
 // ══════════════════════════════════════
-// AADHAAR RESIZER
-// Portrait A4 page has N cards stacked vertically (each card = landscape strip)
-// Auto-detect N by scanning horizontal whitespace dividers
-// Each strip → 2026×1276px (85.6×54mm @ 600 DPI)
+// AADHAAR RESIZER — INTERACTIVE CROPPER
 // ══════════════════════════════════════
 
-async function fileToImageBitmap(file) {
+// Card physical dimensions (fixed)
+const CARD_W_MM = 85.6;
+const CARD_H_MM = 54.0;
+const CARD_W_PX = 2026;  // 85.6mm @ 600 DPI
+const CARD_H_PX = 1276;  // 54mm @ 600 DPI
+// Aspect ratio of the card
+const CARD_RATIO = CARD_W_PX / CARD_H_PX; // ≈ 1.5878
+
+// Source canvases for each uploaded file (pages flattened)
+let aadhaarSourceCanvases = [];
+
+// Crop state in DISPLAY coordinates (pixels on screen canvas)
+let cropState = {
+  x: 0, y: 0,       // top-left of crop box in display coords
+  w: 100, h: 63,    // size in display coords
+};
+let displayScale = 1; // display canvas width / source canvas width
+
+// Zoom & pan of source image inside display canvas
+let imgZoom = 1;
+let imgPanX = 0;
+let imgPanY = 0;
+
+let cropDragging = null; // { type: 'move'|handle_dir, startMouseX, startMouseY, startCrop }
+
+// ── Step navigation ──
+function aadhaarSetStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('cstep-'+i);
+    el.classList.remove('active','done');
+    if(i < n) el.classList.add('done');
+    else if(i === n) el.classList.add('active');
+  });
+}
+
+function aadhaarBackToUpload() {
+  document.getElementById('aadhaar-upload-section').style.display = 'block';
+  document.getElementById('aadhaar-crop-section').classList.remove('visible');
+  document.getElementById('aadhaar-result').classList.remove('show');
+  aadhaarSetStep(1);
+}
+
+async function aadhaarGoToCrop() {
+  const files = fileStores['aadhaar'];
+  if(!files.length) return;
+
+  aadhaarSetStep(2);
+  document.getElementById('aadhaar-upload-section').style.display = 'none';
+  document.getElementById('aadhaar-crop-section').classList.add('visible');
+  setStatus('aadhaar','Loading files…');
+
+  // Rasterise all files to canvases
+  aadhaarSourceCanvases = [];
+  for(const file of files) {
+    const pages = await fileToCanvases(file);
+    for(const c of pages) aadhaarSourceCanvases.push({ canvas: c, name: file.name });
+  }
+
+  setStatus('aadhaar','');
+  renderCropperMain(0);
+  renderThumbStrip();
+}
+
+// Render the main cropper canvas with the first source image
+function renderCropperMain(srcIdx) {
+  const wrap = document.getElementById('cropper-canvas-wrap');
+  const bgCanvas = document.getElementById('cropper-bg-canvas');
+  const src = aadhaarSourceCanvases[srcIdx];
+  if(!src) return;
+
+  const srcW = src.canvas.width;
+  const srcH = src.canvas.height;
+
+  // Display canvas: fit inside wrap, max 600px wide
+  const maxW = Math.min(wrap.clientWidth || 560, 600);
+  const maxH = 420;
+  const scaleW = maxW / srcW;
+  const scaleH = maxH / srcH;
+  displayScale = Math.min(scaleW, scaleH, 1);
+
+  bgCanvas.width  = Math.round(srcW * displayScale);
+  bgCanvas.height = Math.round(srcH * displayScale);
+
+  // Reset pan/zoom
+  imgZoom = 1;
+  imgPanX = 0;
+  imgPanY = 0;
+  document.getElementById('zoom-slider').value = 1;
+  document.getElementById('zoom-val-label').textContent = '100%';
+
+  drawCropperBg();
+
+  // Initial crop box: center, full width if landscape, else top-center
+  const dw = bgCanvas.width;
+  const dh = bgCanvas.height;
+
+  // Box height from ratio
+  let boxW = dw * 0.85;
+  let boxH = boxW / CARD_RATIO;
+  if(boxH > dh * 0.9) { boxH = dh * 0.9; boxW = boxH * CARD_RATIO; }
+
+  cropState.x = (dw - boxW) / 2;
+  cropState.y = (dh - boxH) / 2;
+  cropState.w = boxW;
+  cropState.h = boxH;
+
+  updateCropBox();
+  updateCropPreview();
+}
+
+function drawCropperBg() {
+  const bgCanvas = document.getElementById('cropper-bg-canvas');
+  const src = aadhaarSourceCanvases[0];
+  if(!src) return;
+
+  const ctx = bgCanvas.getContext('2d');
+  const dw = bgCanvas.width;
+  const dh = bgCanvas.height;
+
+  ctx.clearRect(0,0,dw,dh);
+
+  // Draw source image with current zoom/pan
+  const srcW = src.canvas.width;
+  const srcH = src.canvas.height;
+
+  const drawW = srcW * displayScale * imgZoom;
+  const drawH = srcH * displayScale * imgZoom;
+  const ox = (dw - drawW)/2 + imgPanX;
+  const oy = (dh - drawH)/2 + imgPanY;
+
+  ctx.drawImage(src.canvas, ox, oy, drawW, drawH);
+}
+
+function updateCropBox() {
+  const box = document.getElementById('crop-box');
+  box.style.left   = cropState.x + 'px';
+  box.style.top    = cropState.y + 'px';
+  box.style.width  = cropState.w + 'px';
+  box.style.height = cropState.h + 'px';
+
+  // Update coords display (convert display px → source px)
+  const sx = cropDisplayToSource(cropState.x, cropState.y, cropState.w, cropState.h);
+  document.getElementById('cc-x').textContent = Math.round(sx.x);
+  document.getElementById('cc-y').textContent = Math.round(sx.y);
+  document.getElementById('cc-w').textContent = Math.round(sx.w);
+  document.getElementById('cc-h').textContent = Math.round(sx.h);
+}
+
+// Convert crop box from display coords → source canvas coords
+function cropDisplayToSource(x, y, w, h) {
+  const bgCanvas = document.getElementById('cropper-bg-canvas');
+  const src = aadhaarSourceCanvases[0];
+  if(!src) return {x,y,w,h};
+
+  const srcW = src.canvas.width;
+  const srcH = src.canvas.height;
+  const dw = bgCanvas.width;
+  const dh = bgCanvas.height;
+
+  const drawW = srcW * displayScale * imgZoom;
+  const drawH = srcH * displayScale * imgZoom;
+  const ox = (dw - drawW)/2 + imgPanX;
+  const oy = (dh - drawH)/2 + imgPanY;
+
+  return {
+    x: (x - ox) / (displayScale * imgZoom),
+    y: (y - oy) / (displayScale * imgZoom),
+    w: w / (displayScale * imgZoom),
+    h: h / (displayScale * imgZoom),
+  };
+}
+
+function updateCropPreview() {
+  const previewCanvas = document.getElementById('crop-preview-canvas');
+  const ctx = previewCanvas.getContext('2d');
+  const src = aadhaarSourceCanvases[0];
+  if(!src) return;
+
+  const { x, y, w, h } = cropDisplayToSource(cropState.x, cropState.y, cropState.w, cropState.h);
+
+  previewCanvas.width = 160;
+  previewCanvas.height = 100;
+  ctx.clearRect(0,0,160,100);
+  ctx.drawImage(src.canvas, x, y, w, h, 0, 0, 160, 100);
+}
+
+// ── Crop box drag/resize ──
+const cropBox = document.getElementById('crop-box');
+const cropWrap = document.getElementById('cropper-canvas-wrap');
+
+cropBox.addEventListener('mousedown', onCropMouseDown);
+cropBox.addEventListener('touchstart', onCropTouchStart, {passive:false});
+
+document.addEventListener('mousemove', onCropMouseMove);
+document.addEventListener('mouseup', onCropMouseUp);
+document.addEventListener('touchmove', onCropTouchMove, {passive:false});
+document.addEventListener('touchend', onCropMouseUp);
+
+function onCropMouseDown(e) {
+  e.stopPropagation();
+  const dir = e.target.dataset.dir;
+  cropDragging = {
+    type: dir || 'move',
+    startMouseX: e.clientX, startMouseY: e.clientY,
+    startCrop: {...cropState}
+  };
+}
+function onCropTouchStart(e) {
+  e.preventDefault();
+  const t = e.touches[0];
+  const dir = e.target.dataset.dir;
+  cropDragging = {
+    type: dir || 'move',
+    startMouseX: t.clientX, startMouseY: t.clientY,
+    startCrop: {...cropState}
+  };
+}
+function getCropMouse(e) {
+  if(e.touches) return { cx: e.touches[0].clientX, cy: e.touches[0].clientY };
+  return { cx: e.clientX, cy: e.clientY };
+}
+
+function onCropMouseMove(e) {
+  if(!cropDragging) return;
+  const {cx,cy} = getCropMouse(e);
+  const dx = cx - cropDragging.startMouseX;
+  const dy = cy - cropDragging.startMouseY;
+  const sc = cropDragging.startCrop;
+  const bgCanvas = document.getElementById('cropper-bg-canvas');
+  const maxX = bgCanvas.width;
+  const maxY = bgCanvas.height;
+
+  let nx = sc.x, ny = sc.y, nw = sc.w, nh = sc.h;
+
+  if(cropDragging.type === 'move') {
+    nx = sc.x + dx;
+    ny = sc.y + dy;
+    // Clamp
+    nx = Math.max(0, Math.min(maxX - nw, nx));
+    ny = Math.max(0, Math.min(maxY - nh, ny));
+  } else {
+    // Resize — maintain CARD_RATIO
+    const dir = cropDragging.type;
+    if(dir.includes('e') || dir === 'n' || dir === 's') {
+      nw = Math.max(40, sc.w + (dir.includes('w') ? -dx : dx));
+      nh = nw / CARD_RATIO;
+    }
+    if(dir.includes('w')) {
+      nw = Math.max(40, sc.w - dx);
+      nh = nw / CARD_RATIO;
+      nx = sc.x + sc.w - nw;
+      ny = sc.y;
+    }
+    if(dir.includes('n')) {
+      nh = Math.max(25, sc.h - dy);
+      nw = nh * CARD_RATIO;
+      ny = sc.y + sc.h - nh;
+      nx = sc.x;
+    }
+    if(dir === 'se') { nw = Math.max(40, sc.w+dx); nh = nw/CARD_RATIO; nx=sc.x; ny=sc.y; }
+    if(dir === 'sw') { nw = Math.max(40, sc.w-dx); nh = nw/CARD_RATIO; nx=sc.x+sc.w-nw; ny=sc.y; }
+    if(dir === 'ne') { nw = Math.max(40, sc.w+dx); nh = nw/CARD_RATIO; nx=sc.x; ny=sc.y+sc.h-nh; }
+    if(dir === 'nw') { nw = Math.max(40, sc.w-dx); nh = nw/CARD_RATIO; nx=sc.x+sc.w-nw; ny=sc.y+sc.h-nh; }
+    if(dir === 's')  { nh = Math.max(25, sc.h+dy); nw=nh*CARD_RATIO; nx=sc.x; ny=sc.y; }
+    if(dir === 'n')  { nh = Math.max(25, sc.h-dy); nw=nh*CARD_RATIO; nx=sc.x; ny=sc.y+sc.h-nh; }
+    if(dir === 'e')  { nw = Math.max(40, sc.w+dx); nh=nw/CARD_RATIO; nx=sc.x; ny=sc.y; }
+    if(dir === 'w')  { nw = Math.max(40, sc.w-dx); nh=nw/CARD_RATIO; nx=sc.x+sc.w-nw; ny=sc.y; }
+
+    nx = Math.max(0, nx); ny = Math.max(0, ny);
+    if(nx+nw > maxX) nw = maxX-nx;
+    if(ny+nh > maxY) nh = maxY-ny;
+  }
+
+  cropState = { x: nx, y: ny, w: nw, h: nh };
+  updateCropBox();
+  updateCropPreview();
+  updateThumbStripCrop();
+}
+
+function onCropTouchMove(e) {
+  e.preventDefault();
+  onCropMouseMove(e);
+}
+function onCropMouseUp() { cropDragging = null; }
+
+// ── Zoom controls ──
+function onZoomSlider() {
+  imgZoom = parseFloat(document.getElementById('zoom-slider').value);
+  document.getElementById('zoom-val-label').textContent = Math.round(imgZoom*100)+'%';
+  drawCropperBg();
+}
+
+// Mouse wheel zoom
+cropWrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.1 : 0.1;
+  imgZoom = Math.max(0.3, Math.min(4, imgZoom + delta));
+  document.getElementById('zoom-slider').value = imgZoom;
+  document.getElementById('zoom-val-label').textContent = Math.round(imgZoom*100)+'%';
+  drawCropperBg();
+}, {passive:false});
+
+// Image pan (middle mouse or two-finger drag on bg canvas)
+let panDrag = null;
+document.getElementById('cropper-bg-canvas').addEventListener('mousedown', e => {
+  if(e.button === 1 || e.altKey) {
+    e.preventDefault();
+    panDrag = { startX: e.clientX, startY: e.clientY, startPanX: imgPanX, startPanY: imgPanY };
+  }
+});
+document.addEventListener('mousemove', e => {
+  if(!panDrag) return;
+  imgPanX = panDrag.startPanX + (e.clientX - panDrag.startX);
+  imgPanY = panDrag.startPanY + (e.clientY - panDrag.startY);
+  drawCropperBg();
+});
+document.addEventListener('mouseup', () => panDrag = null);
+
+// ── Quick fit buttons ──
+function cropFitWidth() {
+  const bgCanvas = document.getElementById('cropper-bg-canvas');
+  cropState.w = bgCanvas.width * 0.95;
+  cropState.h = cropState.w / CARD_RATIO;
+  cropState.x = (bgCanvas.width - cropState.w) / 2;
+  cropState.y = (bgCanvas.height - cropState.h) / 2;
+  updateCropBox(); updateCropPreview(); updateThumbStripCrop();
+}
+function cropCenter() {
+  const bgCanvas = document.getElementById('cropper-bg-canvas');
+  cropState.x = (bgCanvas.width - cropState.w) / 2;
+  cropState.y = (bgCanvas.height - cropState.h) / 2;
+  updateCropBox(); updateCropPreview(); updateThumbStripCrop();
+}
+function cropFitFull() {
+  const bgCanvas = document.getElementById('cropper-bg-canvas');
+  cropState.w = bgCanvas.width;
+  cropState.h = bgCanvas.height;
+  // adjust to ratio
+  if(cropState.w / cropState.h > CARD_RATIO) {
+    cropState.w = cropState.h * CARD_RATIO;
+  } else {
+    cropState.h = cropState.w / CARD_RATIO;
+  }
+  cropState.x = (bgCanvas.width  - cropState.w)/2;
+  cropState.y = (bgCanvas.height - cropState.h)/2;
+  updateCropBox(); updateCropPreview(); updateThumbStripCrop();
+}
+
+// ── Thumbnail strip ──
+function renderThumbStrip() {
+  const strip = document.getElementById('aadhaar-thumb-strip');
+  strip.innerHTML = '';
+  document.getElementById('thumb-count-label').textContent = aadhaarSourceCanvases.length + ' file(s)';
+
+  aadhaarSourceCanvases.forEach((src, i) => {
+    const item = document.createElement('div');
+    item.className = 'thumb-item';
+
+    const cwrap = document.createElement('div');
+    cwrap.className = 'thumb-canvas-wrap';
+    cwrap.id = 'thumb-wrap-'+i;
+
+    const tc = document.createElement('canvas');
+    tc.id = 'thumb-canvas-'+i;
+    tc.width = 160;
+    tc.height = 100;
+
+    // Draw source thumbnail
+    const tctx = tc.getContext('2d');
+    tctx.drawImage(src.canvas, 0, 0, 160, 100);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'thumb-overlay';
+
+    cwrap.appendChild(tc);
+    cwrap.appendChild(overlay);
+
+    const name = document.createElement('div');
+    name.className = 'thumb-name';
+    name.textContent = src.name;
+
+    item.appendChild(cwrap);
+    item.appendChild(name);
+    strip.appendChild(item);
+  });
+
+  updateThumbStripCrop();
+}
+
+function updateThumbStripCrop() {
+  aadhaarSourceCanvases.forEach((src, i) => {
+    const tc = document.getElementById('thumb-canvas-'+i);
+    if(!tc) return;
+    const tctx = tc.getContext('2d');
+    tctx.clearRect(0,0,160,100);
+
+    // Draw full source scaled to thumb
+    const scaleX = 160 / src.canvas.width;
+    const scaleY = 100 / src.canvas.height;
+    tctx.drawImage(src.canvas, 0, 0, 160, 100);
+
+    // Draw crop indicator on thumb
+    const srcCrop = cropDisplayToSource(cropState.x, cropState.y, cropState.w, cropState.h);
+    const tx = srcCrop.x * scaleX;
+    const ty = srcCrop.y * scaleY;
+    const tw = srcCrop.w * scaleX;
+    const th = srcCrop.h * scaleY;
+
+    // Darken outside
+    tctx.fillStyle = 'rgba(0,0,0,0.45)';
+    tctx.fillRect(0,0,160,100);
+    tctx.clearRect(tx, ty, tw, th);
+    tctx.drawImage(src.canvas,
+      srcCrop.x, srcCrop.y, srcCrop.w, srcCrop.h,
+      tx, ty, tw, th
+    );
+
+    // Crop box border on thumb
+    tctx.strokeStyle = '#5b5ef4';
+    tctx.lineWidth = 1.5;
+    tctx.strokeRect(tx, ty, tw, th);
+  });
+}
+
+// ── Export / Process ──
+async function processAadhaar() {
+  if(!aadhaarSourceCanvases.length) return;
+
+  const btn = document.getElementById('aadhaar-process-btn');
+  btn.disabled = true;
+  aadhaarSetStep(3);
+  setProgress('aadhaar', 0);
+  setStatus('aadhaar', 'Exporting…');
+
+  // Get crop in source coords from first image
+  const srcCrop = cropDisplayToSource(cropState.x, cropState.y, cropState.w, cropState.h);
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:[CARD_W_MM, CARD_H_MM] });
+  let isFirst = true;
+
+  for(let i = 0; i < aadhaarSourceCanvases.length; i++) {
+    const src = aadhaarSourceCanvases[i];
+    const srcCanvas = src.canvas;
+
+    // Mark thumb as processing
+    const twrap = document.getElementById('thumb-wrap-'+i);
+    if(twrap) twrap.classList.add('processing');
+
+    // Crop region: srcCrop is relative to first image; apply same crop to all
+    // (proportional: use same normalized coordinates)
+    const normX = srcCrop.x / aadhaarSourceCanvases[0].canvas.width;
+    const normY = srcCrop.y / aadhaarSourceCanvases[0].canvas.height;
+    const normW = srcCrop.w / aadhaarSourceCanvases[0].canvas.width;
+    const normH = srcCrop.h / aadhaarSourceCanvases[0].canvas.height;
+
+    const cx = normX * srcCanvas.width;
+    const cy = normY * srcCanvas.height;
+    const cw = normW * srcCanvas.width;
+    const ch = normH * srcCanvas.height;
+
+    // Render to output canvas at 600 DPI size
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width  = CARD_W_PX;
+    outCanvas.height = CARD_H_PX;
+    const ctx = outCanvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, CARD_W_PX, CARD_H_PX);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(srcCanvas, cx, cy, cw, ch, 0, 0, CARD_W_PX, CARD_H_PX);
+
+    const imgData = outCanvas.toDataURL('image/jpeg', 1.0);
+    if(!isFirst) doc.addPage([CARD_W_MM, CARD_H_MM], 'landscape');
+    doc.addImage(imgData, 'JPEG', 0, 0, CARD_W_MM, CARD_H_MM, undefined, 'NONE');
+    isFirst = false;
+
+    if(twrap) { twrap.classList.remove('processing'); twrap.classList.add('done-thumb'); }
+
+    setProgress('aadhaar', Math.round((i+1)/aadhaarSourceCanvases.length*100));
+    setStatus('aadhaar', `Processed ${i+1} of ${aadhaarSourceCanvases.length}…`);
+
+    await new Promise(r => setTimeout(r, 10)); // yield for UI updates
+  }
+
+  const blob = doc.output('blob');
+  triggerDownload(blob, 'aadhaar_pvc_cards.pdf');
+  setStatus('aadhaar', '✅ Done! Downloading…', 'success');
+  showResult('aadhaar', `${aadhaarSourceCanvases.length} card(s) cropped to ${CARD_W_MM}×${CARD_H_MM}mm @ 600 DPI (${CARD_W_PX}×${CARD_H_PX}px) — merged PDF downloaded.`);
+  btn.disabled = false;
+}
+
+// ── File to canvases (PDF pages or image) ──
+async function fileToCanvases(file) {
   if(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
     const ab = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({data: ab}).promise;
-    const bitmaps = [];
+    const canvases = [];
     for(let p=1; p<=pdf.numPages; p++) {
       const page = await pdf.getPage(p);
-      const viewport = page.getViewport({scale: 4}); // 4x = ~600 DPI quality
+      const viewport = page.getViewport({scale: 3}); // 3x for quality
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width; canvas.height = viewport.height;
       await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
-      bitmaps.push(canvas);
+      canvases.push(canvas);
     }
-    return bitmaps;
+    return canvases;
   } else {
-    return new Promise((res,rej) => {
+    return new Promise((res, rej) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
-      img.onload = () => { URL.revokeObjectURL(url); res([img]); };
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        res([c]);
+      };
       img.onerror = rej;
       img.src = url;
     });
   }
 }
 
-// Scan canvas rows — find horizontal whitespace gaps between cards
-// Returns array of {sy, sh} strips
-function detectCardStrips(canvas) {
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  const data = ctx.getImageData(0, 0, w, h).data;
-
-  // For each row, check if it is "content" (has colored pixels) or "gap" (mostly white)
-  const step = Math.max(1, Math.floor(w / 80));
-  const rowHasContent = new Uint8Array(h);
-  for(let y = 0; y < h; y++) {
-    let colored = 0;
-    for(let x = Math.floor(w*0.05); x < Math.floor(w*0.95); x += step) {
-      const i = (y * w + x) * 4;
-      if(data[i] < 230 || data[i+1] < 230 || data[i+2] < 230) colored++;
-    }
-    rowHasContent[y] = colored > 2 ? 1 : 0;
-  }
-
-  // Find content bands (runs of content rows)
-  const bands = [];
-  let inBand = false, bandStart = 0;
-  for(let y = 0; y < h; y++) {
-    if(!inBand && rowHasContent[y]) { inBand = true; bandStart = y; }
-    else if(inBand && !rowHasContent[y]) {
-      // Check gap is at least 0.5% of height (real gap, not noise)
-      let gapLen = 0;
-      for(let yy = y; yy < Math.min(h, y + Math.floor(h*0.02)); yy++) {
-        if(!rowHasContent[yy]) gapLen++; else break;
-      }
-      if(gapLen > 3) {
-        bands.push({ sy: bandStart, sh: y - bandStart });
-        inBand = false;
-      }
-    }
-  }
-  if(inBand) bands.push({ sy: bandStart, sh: h - bandStart });
-
-  // Filter out tiny bands (noise/borders) — keep only bands > 8% of page height
-  const minH = h * 0.08;
-  const cardBands = bands.filter(b => b.sh >= minH);
-
-  // Fallback: if detection fails, divide page equally
-  if(cardBands.length === 0) {
-    // Guess: A4 portrait with cards — card aspect = 85.6/54 ≈ 1.585 (landscape)
-    // Page aspect = w/h. Each card takes full width, height = w/1.585
-    const cardH = Math.floor(w / (85.6 / 54));
-    const n = Math.max(1, Math.round(h / cardH));
-    const strips = [];
-    for(let i=0; i<n; i++) strips.push({ sy: Math.floor(i*h/n), sh: Math.floor(h/n) });
-    return strips;
-  }
-
-  return cardBands;
-}
-
-async function processAadhaar() {
-  const files = fileStores['aadhaar'];
-  if(!files.length) return;
-
-  const btn = document.getElementById('aadhaar-process-btn');
-  btn.disabled = true;
-  setProgress('aadhaar', 0);
-  setStatus('aadhaar', 'Processing Aadhaar files…');
-
-  const OUT_W_MM = 85.6;
-  const OUT_H_MM = 54;
-  const OUT_W_PX = 2026; // 85.6mm @ 600 DPI
-  const OUT_H_PX = 1276; // 54mm @ 600 DPI
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:[OUT_W_MM, OUT_H_MM] });
-  let isFirst = true;
-  let processed = 0;
-  let totalCards = 0;
-
-  for(const file of files) {
-    try {
-      const canvases = await fileToImageBitmap(file);
-
-      for(const src of canvases) {
-        const srcW = src.naturalWidth || src.width;
-        const srcH = src.naturalHeight || src.height;
-
-        // Draw to working canvas
-        const fullCanvas = document.createElement('canvas');
-        fullCanvas.width = srcW; fullCanvas.height = srcH;
-        fullCanvas.getContext('2d').drawImage(src, 0, 0);
-
-        let strips;
-        if(srcH > srcW) {
-          // Portrait A4 — detect strips
-          strips = detectCardStrips(fullCanvas);
-        } else {
-          // Already landscape card — use full image as one strip
-          strips = [{ sy: 0, sh: srcH }];
-        }
-
-        for(const strip of strips) {
-          const outCanvas = document.createElement('canvas');
-          outCanvas.width = OUT_W_PX;
-          outCanvas.height = OUT_H_PX;
-          const ctx = outCanvas.getContext('2d');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, OUT_W_PX, OUT_H_PX);
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          // Crop: full width, strip height
-          ctx.drawImage(fullCanvas, 0, strip.sy, srcW, strip.sh, 0, 0, OUT_W_PX, OUT_H_PX);
-
-          const imgData = outCanvas.toDataURL('image/jpeg', 1.0);
-          if(!isFirst) doc.addPage([OUT_W_MM, OUT_H_MM], 'landscape');
-          doc.addImage(imgData, 'JPEG', 0, 0, OUT_W_MM, OUT_H_MM, undefined, 'NONE');
-          isFirst = false;
-          totalCards++;
-        }
-      }
-    } catch(e) { console.error('Aadhaar error:', e); }
-
-    processed++;
-    setProgress('aadhaar', Math.round(processed / files.length * 100));
-    setStatus('aadhaar', `Processed ${processed} of ${files.length} files…`);
-  }
-
-  const blob = doc.output('blob');
-  triggerDownload(blob, 'aadhaar_pvc_cards.pdf');
-  setStatus('aadhaar', '✅ Done! Downloading…', 'success');
-  showResult('aadhaar', `${totalCards} card(s) from ${processed} file(s) → PVC size (85.6×54mm @ 600 DPI) merged PDF.`);
-  btn.disabled = false;
-}
 
 // ══════════════════════════════════════
 // IMAGE RESIZER
@@ -1129,7 +1781,6 @@ function updateResizeUnit() {
   const unit = document.getElementById('resize-unit').value;
   document.getElementById('resize-unit-label').textContent = unit;
 }
-
 function mmToPx(val, dpi=96) { return Math.round(val * dpi / 25.4); }
 function cmToPx(val, dpi=96) { return Math.round(val * dpi / 2.54); }
 
@@ -1138,26 +1789,20 @@ async function processResize() {
   if(!files.length) return;
   const btn = document.getElementById('resize-btn');
   btn.disabled = true;
-
   let w = parseFloat(document.getElementById('resize-width').value);
   let h = parseFloat(document.getElementById('resize-height').value);
   const unit = document.getElementById('resize-unit').value;
   const quality = parseFloat(document.getElementById('resize-quality').value);
-
-  if(unit === 'mm') { w = mmToPx(w, 300); h = mmToPx(h, 300); }
-  else if(unit === 'cm') { w = cmToPx(w, 300); h = cmToPx(h, 300); }
-
-  setProgress('resize', 0);
-  setStatus('resize','Resizing…');
-
+  if(unit === 'mm') { w = mmToPx(w,300); h = mmToPx(h,300); }
+  else if(unit === 'cm') { w = cmToPx(w,300); h = cmToPx(h,300); }
+  setProgress('resize', 0); setStatus('resize','Resizing…');
   const zip = new JSZip();
   let done = 0;
   for(const file of files) {
     const bitmap = await loadImage(file);
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(bitmap, 0, 0, w, h);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
     const blob = await canvasToBlob(canvas, 'image/jpeg', quality);
     zip.file(file.name.replace(/\.[^.]+$/, '')+'_resized.jpg', blob);
     done++;
@@ -1166,7 +1811,7 @@ async function processResize() {
   const zipBlob = await zip.generateAsync({type:'blob'});
   triggerDownload(zipBlob, 'resized_images.zip');
   setStatus('resize','✅ Done!','success');
-  showResult('resize', `${done} image(s) resized to ${document.getElementById('resize-width').value}×${document.getElementById('resize-height').value} ${unit}.`);
+  showResult('resize', `${done} image(s) resized.`);
   btn.disabled = false;
 }
 
@@ -1178,18 +1823,13 @@ async function processImgCompress() {
   if(!files.length) return;
   const btn = document.getElementById('imgcompress-btn');
   btn.disabled = true;
-
   let targetBytes = parseFloat(document.getElementById('compress-target').value);
   const unit = document.getElementById('compress-unit').value;
   if(unit === 'mb') targetBytes *= 1024;
   targetBytes *= 1024;
-
   const format = document.getElementById('compress-format').value;
   const mimeType = 'image/'+format;
-
-  setProgress('imgcompress', 0);
-  setStatus('imgcompress','Compressing…');
-
+  setProgress('imgcompress', 0); setStatus('imgcompress','Compressing…');
   const zip = new JSZip();
   let done = 0;
   for(const file of files) {
@@ -1198,21 +1838,18 @@ async function processImgCompress() {
     canvas.width = bitmap.naturalWidth || bitmap.width;
     canvas.height = bitmap.naturalHeight || bitmap.height;
     canvas.getContext('2d').drawImage(bitmap, 0, 0);
-
-    // Binary search quality
-    let lo = 0.01, hi = 1.0, bestBlob = null;
+    let lo=0.01, hi=1.0, bestBlob=null;
     for(let iter=0; iter<12; iter++) {
-      const mid = (lo+hi)/2;
+      const mid=(lo+hi)/2;
       const blob = await canvasToBlob(canvas, mimeType, mid);
-      if(blob.size <= targetBytes) { bestBlob = blob; lo = mid; }
-      else hi = mid;
+      if(blob.size <= targetBytes) { bestBlob=blob; lo=mid; }
+      else hi=mid;
       if(hi-lo < 0.005) break;
     }
     if(!bestBlob) bestBlob = await canvasToBlob(canvas, mimeType, lo);
-    const ext = format === 'jpeg' ? 'jpg' : format;
-    zip.file(file.name.replace(/\.[^.]+$/, '')+'_compressed.'+ext, bestBlob);
-    done++;
-    setProgress('imgcompress', Math.round(done/files.length*100));
+    const ext = format==='jpeg'?'jpg':format;
+    zip.file(file.name.replace(/\.[^.]+$/,'')+'_compressed.'+ext, bestBlob);
+    done++; setProgress('imgcompress', Math.round(done/files.length*100));
   }
   const zipBlob = await zip.generateAsync({type:'blob'});
   triggerDownload(zipBlob, 'compressed_images.zip');
@@ -1229,28 +1866,23 @@ async function processFileCompress() {
   if(!files.length) return;
   const btn = document.getElementById('filecompress-btn');
   btn.disabled = true;
-
-  const zipName = (document.getElementById('zip-name').value || 'compressed_files').replace(/[^a-z0-9_-]/gi,'_');
+  const zipName = (document.getElementById('zip-name').value||'compressed_files').replace(/[^a-z0-9_-]/gi,'_');
   const level = parseInt(document.getElementById('zip-level').value);
-
-  setProgress('filecompress', 0);
-  setStatus('filecompress','Compressing files…');
-
+  setProgress('filecompress',0); setStatus('filecompress','Compressing files…');
   const zip = new JSZip();
-  let done = 0;
+  let done=0;
   for(const file of files) {
     const ab = await file.arrayBuffer();
     zip.file(file.name, ab, {compression:'DEFLATE', compressionOptions:{level}});
-    done++;
-    setProgress('filecompress', Math.round(done/files.length*80));
+    done++; setProgress('filecompress', Math.round(done/files.length*80));
   }
   setStatus('filecompress','Building ZIP…');
   const blob = await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level}}, meta => {
-    setProgress('filecompress', 80 + Math.round(meta.percent*0.2));
+    setProgress('filecompress', 80+Math.round(meta.percent*0.2));
   });
   triggerDownload(blob, zipName+'.zip');
   setStatus('filecompress','✅ Done!','success');
-  showResult('filecompress', `${done} file(s) compressed → ${formatSize(blob.size)} ZIP.`);
+  showResult('filecompress', `${done} file(s) → ${formatSize(blob.size)} ZIP.`);
   btn.disabled = false;
 }
 
@@ -1262,52 +1894,34 @@ async function processImg2Pdf() {
   if(!files.length) return;
   const btn = document.getElementById('img2pdf-btn');
   btn.disabled = true;
-
   const pageSize = document.getElementById('img2pdf-pagesize').value;
   const orient = document.getElementById('img2pdf-orient').value;
-
   const { jsPDF } = window.jspdf;
   const pageSizes = { a4:[210,297], a5:[148,210], letter:[215.9,279.4], auto:null };
   let ps = pageSizes[pageSize];
-
-  setProgress('img2pdf', 0);
-  let doc = null;
-  let done = 0;
-
+  setProgress('img2pdf',0);
+  let doc=null, done=0;
   for(const file of files) {
     const bitmap = await loadImage(file);
-    const iw = bitmap.naturalWidth || bitmap.width;
-    const ih = bitmap.naturalHeight || bitmap.height;
-
+    const iw=bitmap.naturalWidth||bitmap.width, ih=bitmap.naturalHeight||bitmap.height;
     let pw, ph;
-    if(!ps) { pw = iw*0.2646; ph = ih*0.2646; } // px to mm at 96dpi
-    else { pw = orient==='portrait' ? ps[0]:ps[1]; ph = orient==='portrait' ? ps[1]:ps[0]; }
-
-    if(!doc) doc = new jsPDF({orientation: pw>ph?'landscape':'portrait', unit:'mm', format:[pw,ph]});
-    else doc.addPage([pw,ph], pw>ph?'landscape':'portrait');
-
-    const canvas = document.createElement('canvas');
-    canvas.width = iw; canvas.height = ih;
+    if(!ps) { pw=iw*0.2646; ph=ih*0.2646; }
+    else { pw=orient==='portrait'?ps[0]:ps[1]; ph=orient==='portrait'?ps[1]:ps[0]; }
+    if(!doc) doc=new jsPDF({orientation:pw>ph?'landscape':'portrait',unit:'mm',format:[pw,ph]});
+    else doc.addPage([pw,ph],pw>ph?'landscape':'portrait');
+    const canvas=document.createElement('canvas'); canvas.width=iw; canvas.height=ih;
     canvas.getContext('2d').drawImage(bitmap,0,0);
-    const imgData = canvas.toDataURL('image/jpeg',1.0);
-
-    // Fit image to page maintaining aspect ratio
-    const imgRatio = iw/ih;
-    const pageRatio = pw/ph;
+    const imgData=canvas.toDataURL('image/jpeg',1.0);
+    const imgRatio=iw/ih, pageRatio=pw/ph;
     let dw=pw, dh=ph;
-    if(imgRatio > pageRatio) { dh = pw/imgRatio; }
-    else { dw = ph*imgRatio; }
-    const dx = (pw-dw)/2, dy = (ph-dh)/2;
-    doc.addImage(imgData,'JPEG',dx,dy,dw,dh,undefined,'NONE');
-
-    done++;
-    setProgress('img2pdf', Math.round(done/files.length*100));
+    if(imgRatio>pageRatio) dh=pw/imgRatio; else dw=ph*imgRatio;
+    doc.addImage(imgData,'JPEG',(pw-dw)/2,(ph-dh)/2,dw,dh,undefined,'NONE');
+    done++; setProgress('img2pdf',Math.round(done/files.length*100));
   }
-  const blob = doc.output('blob');
-  triggerDownload(blob, 'images_merged.pdf');
+  triggerDownload(doc.output('blob'),'images_merged.pdf');
   setStatus('img2pdf','✅ Done!','success');
-  showResult('img2pdf', `${done} image(s) converted to PDF.`);
-  btn.disabled = false;
+  showResult('img2pdf',`${done} image(s) converted to PDF.`);
+  btn.disabled=false;
 }
 
 // ══════════════════════════════════════
@@ -1318,121 +1932,93 @@ async function processPdf2Img() {
   if(!files.length) return;
   const btn = document.getElementById('pdf2img-btn');
   btn.disabled = true;
-
   const scale = parseFloat(document.getElementById('pdf2img-dpi').value);
   const file = files[0];
   const ab = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({data:ab}).promise;
-
-  setProgress('pdf2img', 0);
-  setStatus('pdf2img',`Extracting ${pdf.numPages} pages…`);
-
+  setProgress('pdf2img',0); setStatus('pdf2img',`Extracting ${pdf.numPages} pages…`);
   const zip = new JSZip();
-  for(let p=1; p<=pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const viewport = page.getViewport({scale});
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width; canvas.height = viewport.height;
-    await page.render({canvasContext:canvas.getContext('2d'), viewport}).promise;
-    const blob = await canvasToBlob(canvas,'image/png',1.0);
-    zip.file(`page_${String(p).padStart(3,'0')}.png`, blob);
-    setProgress('pdf2img', Math.round(p/pdf.numPages*100));
+  for(let p=1;p<=pdf.numPages;p++) {
+    const page=await pdf.getPage(p);
+    const viewport=page.getViewport({scale});
+    const canvas=document.createElement('canvas');
+    canvas.width=viewport.width; canvas.height=viewport.height;
+    await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+    const blob=await canvasToBlob(canvas,'image/png',1.0);
+    zip.file(`page_${String(p).padStart(3,'0')}.png`,blob);
+    setProgress('pdf2img',Math.round(p/pdf.numPages*100));
   }
-  const zipBlob = await zip.generateAsync({type:'blob'});
-  triggerDownload(zipBlob, file.name.replace('.pdf','')+'_pages.zip');
+  const zipBlob=await zip.generateAsync({type:'blob'});
+  triggerDownload(zipBlob,file.name.replace('.pdf','')+'_pages.zip');
   setStatus('pdf2img','✅ Done!','success');
-  showResult('pdf2img', `${pdf.numPages} page(s) extracted as PNG images.`);
-  btn.disabled = false;
+  showResult('pdf2img',`${pdf.numPages} pages extracted.`);
+  btn.disabled=false;
 }
 
 // ══════════════════════════════════════
 // QR CODE
 // ══════════════════════════════════════
-let qrInstance = null;
 function generateQR() {
-  const text = document.getElementById('qr-text').value.trim();
-  const out = document.getElementById('qr-output');
-  if(!text) { out.innerHTML=''; document.getElementById('qr-download-row').style.display='none'; return; }
-  const size = parseInt(document.getElementById('qr-size').value);
-  const ec = document.getElementById('qr-ec').value;
-  const color = document.getElementById('qr-color').value;
-  const bg = document.getElementById('qr-bg').value;
-
-  out.innerHTML = '';
+  const text=document.getElementById('qr-text').value.trim();
+  const out=document.getElementById('qr-output');
+  if(!text){out.innerHTML='';document.getElementById('qr-download-row').style.display='none';return;}
+  const size=parseInt(document.getElementById('qr-size').value);
+  const ec=document.getElementById('qr-ec').value;
+  const color=document.getElementById('qr-color').value;
+  const bg=document.getElementById('qr-bg').value;
+  out.innerHTML='';
   try {
-    new QRCode(out, {
-      text, width:size, height:size,
-      colorDark:color, colorLight:bg,
-      correctLevel: QRCode.CorrectLevel[ec]
-    });
-    document.getElementById('qr-download-row').style.display = 'flex';
+    new QRCode(out,{text,width:size,height:size,colorDark:color,colorLight:bg,correctLevel:QRCode.CorrectLevel[ec]});
+    document.getElementById('qr-download-row').style.display='flex';
   } catch(e) {
-    out.innerHTML = '<p style="color:var(--danger);font-size:0.85rem">Failed to generate. Try shorter text.</p>';
+    out.innerHTML='<p style="color:var(--danger);font-size:0.85rem">Failed to generate. Try shorter text.</p>';
   }
 }
-
 function downloadQR() {
-  const canvas = document.querySelector('#qr-output canvas');
+  const canvas=document.querySelector('#qr-output canvas');
   if(!canvas) return;
-  canvas.toBlob(blob => triggerDownload(blob, 'qrcode.png'));
+  canvas.toBlob(blob=>triggerDownload(blob,'qrcode.png'));
 }
 
 // ══════════════════════════════════════
 // SIGNATURE CROPPER
 // ══════════════════════════════════════
 function applySigPreset() {
-  const val = document.getElementById('sig-preset').value;
+  const val=document.getElementById('sig-preset').value;
   if(!val) return;
-  const [w,h] = val.split('x').map(Number);
-  document.getElementById('sig-w').value = w;
-  document.getElementById('sig-h').value = h;
+  const [w,h]=val.split('x').map(Number);
+  document.getElementById('sig-w').value=w;
+  document.getElementById('sig-h').value=h;
 }
-
 async function processSignature() {
-  const files = fileStores['signature'];
+  const files=fileStores['signature'];
   if(!files.length) return;
-  const btn = document.getElementById('sig-btn');
-  btn.disabled = true;
-
-  const wMM = parseFloat(document.getElementById('sig-w').value);
-  const hMM = parseFloat(document.getElementById('sig-h').value);
-  const dpi = parseInt(document.getElementById('sig-dpi').value);
-
-  const wPx = Math.round(wMM * dpi / 25.4);
-  const hPx = Math.round(hMM * dpi / 25.4);
-
-  setProgress('sig', 0);
-  setStatus('sig','Processing…');
-
-  const zip = new JSZip();
-  let done = 0;
+  const btn=document.getElementById('sig-btn'); btn.disabled=true;
+  const wMM=parseFloat(document.getElementById('sig-w').value);
+  const hMM=parseFloat(document.getElementById('sig-h').value);
+  const dpi=parseInt(document.getElementById('sig-dpi').value);
+  const wPx=Math.round(wMM*dpi/25.4), hPx=Math.round(hMM*dpi/25.4);
+  setProgress('sig',0); setStatus('sig','Processing…');
+  const zip=new JSZip(); let done=0;
   for(const file of files) {
-    const bitmap = await loadImage(file);
-    const srcW = bitmap.naturalWidth || bitmap.width;
-    const srcH = bitmap.naturalHeight || bitmap.height;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = wPx; canvas.height = hPx;
-    const ctx = canvas.getContext('2d');
-
-    // Smart crop: center crop maintaining aspect ratio fill
-    const srcRatio = srcW/srcH;
-    const dstRatio = wPx/hPx;
+    const bitmap=await loadImage(file);
+    const srcW=bitmap.naturalWidth||bitmap.width, srcH=bitmap.naturalHeight||bitmap.height;
+    const canvas=document.createElement('canvas'); canvas.width=wPx; canvas.height=hPx;
+    const ctx=canvas.getContext('2d');
+    const srcRatio=srcW/srcH, dstRatio=wPx/hPx;
     let sx=0,sy=0,sw=srcW,sh=srcH;
-    if(srcRatio > dstRatio) { sw=Math.round(srcH*dstRatio); sx=Math.round((srcW-sw)/2); }
-    else { sh=Math.round(srcW/dstRatio); sy=Math.round((srcH-sh)/2); }
-    ctx.drawImage(bitmap, sx,sy,sw,sh, 0,0,wPx,hPx);
-
-    const blob = await canvasToBlob(canvas,'image/jpeg',1.0);
-    zip.file(file.name.replace(/\.[^.]+$/,'')+'_'+wMM+'x'+hMM+'mm.jpg', blob);
-    done++;
-    setProgress('sig', Math.round(done/files.length*100));
+    if(srcRatio>dstRatio){sw=Math.round(srcH*dstRatio);sx=Math.round((srcW-sw)/2);}
+    else{sh=Math.round(srcW/dstRatio);sy=Math.round((srcH-sh)/2);}
+    ctx.drawImage(bitmap,sx,sy,sw,sh,0,0,wPx,hPx);
+    const blob=await canvasToBlob(canvas,'image/jpeg',1.0);
+    zip.file(file.name.replace(/\.[^.]+$/,'')+'_'+wMM+'x'+hMM+'mm.jpg',blob);
+    done++; setProgress('sig',Math.round(done/files.length*100));
   }
-  const zipBlob = await zip.generateAsync({type:'blob'});
-  triggerDownload(zipBlob, 'signature_photos.zip');
+  const zipBlob=await zip.generateAsync({type:'blob'});
+  triggerDownload(zipBlob,'signature_photos.zip');
   setStatus('sig','✅ Done!','success');
-  showResult('sig', `${done} photo(s) cropped to ${wMM}×${hMM}mm at ${dpi} DPI.`);
-  btn.disabled = false;
+  showResult('sig',`${done} photo(s) cropped to ${wMM}×${hMM}mm at ${dpi} DPI.`);
+  btn.disabled=false;
 }
 
 // ══════════════════════════════════════
@@ -1440,29 +2026,25 @@ async function processSignature() {
 // ══════════════════════════════════════
 function loadImage(file) {
   return new Promise((res,rej) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => { URL.revokeObjectURL(url); res(img); };
-    img.onerror = rej; img.src = url;
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{URL.revokeObjectURL(url);res(img);};
+    img.onerror=rej; img.src=url;
   });
 }
-function canvasToBlob(canvas, type, quality) {
-  return new Promise(res => canvas.toBlob(res, type, quality));
+function canvasToBlob(canvas,type,quality) {
+  return new Promise(res=>canvas.toBlob(res,type,quality));
 }
-
-// Tabs for IMG↔PDF
 function switchTab(tab) {
-  document.getElementById('panel-img2pdf').style.display = tab==='img2pdf'?'block':'none';
-  document.getElementById('panel-pdf2img').style.display = tab==='pdf2img'?'block':'none';
-  document.getElementById('tab-img2pdf').classList.toggle('active', tab==='img2pdf');
-  document.getElementById('tab-pdf2img').classList.toggle('active', tab==='pdf2img');
+  document.getElementById('panel-img2pdf').style.display=tab==='img2pdf'?'block':'none';
+  document.getElementById('panel-pdf2img').style.display=tab==='pdf2img'?'block':'none';
+  document.getElementById('tab-img2pdf').classList.toggle('active',tab==='img2pdf');
+  document.getElementById('tab-pdf2img').classList.toggle('active',tab==='pdf2img');
 }
-
-// Drag events on dropzones
 document.querySelectorAll('.dropzone').forEach(dz => {
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); });
+  dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('dragover');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');});
 });
 </script>
 </body>
