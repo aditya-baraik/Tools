@@ -993,6 +993,69 @@ async function fileToImageBitmap(file) {
   }
 }
 
+// Detect card strip boundaries by scanning for non-white rows/cols
+function detectCardStrip(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  // Sample at reduced resolution for speed
+  const SAMPLE = 4;
+  const data = ctx.getImageData(0, 0, w, h).data;
+
+  // For each row, check if it has significant non-white content
+  // White = R>240 && G>240 && B>240
+  function rowHasContent(y) {
+    let count = 0;
+    for(let x = Math.floor(w*0.05); x < Math.floor(w*0.95); x += SAMPLE) {
+      const i = (y * w + x) * 4;
+      if(data[i] < 240 || data[i+1] < 240 || data[i+2] < 240) count++;
+    }
+    return count > 10;
+  }
+
+  // Find first and last row with content in the middle vertical band (25%-75%)
+  const searchTop    = Math.floor(h * 0.20);
+  const searchBottom = Math.floor(h * 0.80);
+
+  let firstRow = -1, lastRow = -1;
+  // Scan for the dense content band (card area has lots of content)
+  // Use a sliding window to find the densest band
+  const WINDOW = Math.floor(h * 0.05);
+  let maxDense = 0, bestY = searchTop;
+
+  for(let y = searchTop; y < searchBottom - WINDOW; y += SAMPLE) {
+    let dense = 0;
+    for(let wy = y; wy < y + WINDOW; wy += SAMPLE) {
+      if(rowHasContent(wy)) dense++;
+    }
+    if(dense > maxDense) { maxDense = dense; bestY = y; }
+  }
+
+  // From bestY, expand up and down while rows have content
+  firstRow = bestY;
+  for(let y = bestY; y >= searchTop; y--) {
+    if(rowHasContent(y)) firstRow = y; else if(bestY - y > WINDOW*2) break;
+  }
+  lastRow = bestY + WINDOW;
+  for(let y = bestY + WINDOW; y < searchBottom; y++) {
+    if(rowHasContent(y)) lastRow = y; else if(y - (bestY+WINDOW) > WINDOW*2) break;
+  }
+
+  // Fallback to known UIDAI ratios if detection fails
+  if(firstRow < 0 || lastRow <= firstRow) {
+    firstRow = Math.floor(h * 0.33);
+    lastRow  = Math.floor(h * 0.67);
+  }
+
+  // Add small padding
+  const pad = Math.floor(h * 0.005);
+  return {
+    sx: 0,
+    sy: Math.max(0, firstRow - pad),
+    sw: w,
+    sh: Math.min(h, lastRow - firstRow + pad*2)
+  };
+}
+
 async function processAadhaar() {
   const files = fileStores['aadhaar'];
   if(!files.length) return;
@@ -1002,27 +1065,14 @@ async function processAadhaar() {
   setProgress('aadhaar', 0);
   setStatus('aadhaar','Processing Aadhaar files…');
 
-  // ── UIDAI standard Aadhaar PDF layout (A4 portrait 210×297mm) ──
-  // The card strip (front + back side by side) sits in the middle band:
-  //   Top margin    : ~30% of page height  → sy = srcH * 0.30
-  //   Strip height  : ~38% of page height  → sh = srcH * 0.38
-  //   Left/Right    : full width            → sx=0, sw=srcW
-  // Output page = exact card strip size (landscape, 2 cards wide)
-  // Each card = 85.6 × 54 mm (CR80 PVC)
-  // Strip = 2 cards wide = 171.2 × 54 mm
-  const CARD_W_MM = 85.6;
-  const CARD_H_MM = 54;
-  const STRIP_W_MM = CARD_W_MM * 2;   // front + back = 171.2mm
-  const STRIP_H_MM = CARD_H_MM;        // 54mm
-
-  // Crop ratios for portrait A4 UIDAI Aadhaar
-  // Measured from reference: card strip starts ~31%, ends ~69% vertically
-  const CROP_Y_START = 0.305;
-  const CROP_Y_END   = 0.695;
+  // Output = exact card strip aspect, landscape
+  // We'll auto-detect strip size and preserve aspect ratio
+  // Standard PVC card = 85.6×54mm, two cards side by side = 171.2×54mm
+  const OUT_W_MM = 171.2;
+  const OUT_H_MM = 54;
 
   const { jsPDF } = window.jspdf;
-  // Each output page = full card strip (both cards together)
-  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:[STRIP_W_MM, STRIP_H_MM] });
+  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:[OUT_W_MM, OUT_H_MM] });
   let isFirst = true;
   let processed = 0;
 
@@ -1033,37 +1083,37 @@ async function processAadhaar() {
         const srcW = src.naturalWidth || src.width;
         const srcH = src.naturalHeight || src.height;
 
-        const isPortrait = srcH > srcW;
+        // Draw to full-res canvas for detection
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width = srcW; fullCanvas.height = srcH;
+        fullCanvas.getContext('2d').drawImage(src, 0, 0);
 
         let sx, sy, sw, sh;
-        if(isPortrait) {
-          // Standard UIDAI A4 portrait — crop the card strip
-          sx = 0;
-          sw = srcW;
-          sy = Math.round(srcH * CROP_Y_START);
-          sh = Math.round(srcH * (CROP_Y_END - CROP_Y_START));
+        if(srcH > srcW) {
+          // Portrait = full A4 Aadhaar → detect card strip
+          const crop = detectCardStrip(fullCanvas);
+          sx = crop.sx; sy = crop.sy; sw = crop.sw; sh = crop.sh;
         } else {
-          // Already landscape / already a card — use full image
-          sx = 0; sy = 0; sw = srcW; sh = srcH;
+          // Already landscape/cropped → use full
+          sx=0; sy=0; sw=srcW; sh=srcH;
         }
 
-        // Target canvas at 300 DPI
-        const targetW = Math.round(STRIP_W_MM * 11.811); // px at 300dpi
-        const targetH = Math.round(STRIP_H_MM * 11.811);
-        const tmpCanvas = document.createElement('canvas');
-        tmpCanvas.width = targetW;
-        tmpCanvas.height = targetH;
-        const ctx = tmpCanvas.getContext('2d');
+        // Output canvas at 300 DPI
+        const targetW = Math.round(OUT_W_MM * 11.811);
+        const targetH = Math.round(OUT_H_MM * 11.811);
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = targetW; outCanvas.height = targetH;
+        const ctx = outCanvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(src, sx, sy, sw, sh, 0, 0, targetW, targetH);
+        ctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, targetW, targetH);
 
-        const imgData = tmpCanvas.toDataURL('image/jpeg', 1.0);
-        if(!isFirst) doc.addPage([STRIP_W_MM, STRIP_H_MM], 'landscape');
-        doc.addImage(imgData, 'JPEG', 0, 0, STRIP_W_MM, STRIP_H_MM, undefined, 'NONE');
+        const imgData = outCanvas.toDataURL('image/jpeg', 1.0);
+        if(!isFirst) doc.addPage([OUT_W_MM, OUT_H_MM], 'landscape');
+        doc.addImage(imgData, 'JPEG', 0, 0, OUT_W_MM, OUT_H_MM, undefined, 'NONE');
         isFirst = false;
       }
-    } catch(e) { console.error(e); }
+    } catch(e) { console.error('Aadhaar error:', e); }
     processed++;
     setProgress('aadhaar', Math.round(processed/files.length*100));
     setStatus('aadhaar', `Processed ${processed} of ${files.length}…`);
@@ -1072,7 +1122,7 @@ async function processAadhaar() {
   const blob = doc.output('blob');
   triggerDownload(blob, 'aadhaar_pvc_cards.pdf');
   setStatus('aadhaar','✅ Done! Downloading…','success');
-  showResult('aadhaar', `${processed} Aadhaar card(s) cropped (front+back strip, ${STRIP_W_MM}×${STRIP_H_MM}mm) and merged into one PDF.`);
+  showResult('aadhaar', `${processed} Aadhaar(s) cropped & merged into one PDF.`);
   btn.disabled = false;
 }
 
