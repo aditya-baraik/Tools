@@ -491,7 +491,7 @@
       <div class="modal-header-icon">🪪</div>
       <div>
         <h2>Aadhaar Resizer</h2>
-        <p>Crop each Aadhaar to PVC size → A4 PDF (85.6×54 mm @ 600 DPI)</p>
+        <p>Crop each Aadhaar to PVC size → A4 PDF (171.2×54 mm @ 600 DPI)</p>
       </div>
     </div>
     <button class="close-btn" onclick="closeTool('aadhaar')">✕</button>
@@ -550,12 +550,12 @@
       <div class="acrop-preview-row">
         <div class="acrop-preview-box">
           <canvas id="acrop-preview-canvas" width="214" height="135"></canvas>
-          <div class="acrop-preview-label">Preview (85.6×54 mm)</div>
+          <div class="acrop-preview-label">Preview (171.2×54 mm)</div>
         </div>
         <div style="flex:1;min-width:180px">
           <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.8">
             <div>Output: <strong>2026 × 1276 px</strong></div>
-            <div>Size: <strong>85.6 × 54 mm</strong></div>
+            <div>Size: <strong>171.2 × 54 mm</strong></div>
             <div>DPI: <strong>600</strong></div>
             <div>Page: <strong>A4 (210×297 mm)</strong></div>
             <div style="margin-top:8px;font-size:0.78rem;color:var(--ink-muted)">Crop box is fully adjustable.<br/>Output is always scaled to exact PVC dimensions.</div>
@@ -1090,7 +1090,7 @@ fileStores['imgpdf'] = [];
 
 // ══════════════════════════════════════
 // AADHAAR RESIZER — Interactive Crop Engine
-// Output: 2026×1276px (85.6×54mm @ 600 DPI) on A4 PDF
+// Output: 2026×1276px (171.2×54mm @ 600 DPI) on A4 PDF
 // ══════════════════════════════════════
 
 const ACROP = {
@@ -1354,7 +1354,7 @@ function resetAadhaarCrop() {
 
 async function generateAadhaarPDF() {
   saveCropCoords();
-  const OUT_W_MM = 85.6, OUT_H_MM = 54;
+  const OUT_W_MM = 171.2, OUT_H_MM = 54;
   const OUT_W_PX = 2026, OUT_H_PX = 1276;
   // A4 in mm
   const A4_W = 210, A4_H = 297;
@@ -1364,7 +1364,7 @@ async function generateAadhaarPDF() {
   document.getElementById('aadhaar-result').classList.remove('show');
 
   const { jsPDF } = window.jspdf;
-  // A4 portrait, each card pasted at 85.6×54mm at top-left with small margin
+  // A4 portrait, each card pasted at 171.2×54mm at top-left with small margin
   const MARGIN_MM = 4; // small gap between cards
   const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
 
@@ -1407,7 +1407,7 @@ async function generateAadhaarPDF() {
   const blob = doc.output('blob');
   triggerDownload(blob, 'aadhaar_pvc_cards.pdf');
   setStatus('aadhaar','✅ Done!','success');
-  showResult('aadhaar', `${ACROP.sources.length} card(s) exported — 85.6×54 mm @ 600 DPI on A4 pages. Print at 100% scale for exact PVC size.`);
+  showResult('aadhaar', `${ACROP.sources.length} card(s) exported — 171.2×54 mm @ 600 DPI on A4 pages. Print at 100% scale for exact PVC size.`);
 }
 
 // ══════════════════════════════════════
